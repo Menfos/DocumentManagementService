@@ -1,4 +1,5 @@
 ﻿using System.Net.Mime;
+using System.Security.Policy;
 using System.Threading.Tasks;
 using DocumentManagementService.Handlers;
 using Microsoft.AspNetCore.Http;
@@ -23,10 +24,26 @@ namespace DocumentManagementService.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public IActionResult Get()
         {
-            var pdfDocuments = await _pdfDocumentHandler.GetAvailablePdfDocumentsAsync();
+            var pdfDocuments = _pdfDocumentHandler.GetAvailablePdfDocuments();
             return Ok(pdfDocuments);
+        }
+
+        [HttpGet("download")]
+        public async Task<IActionResult> Download([FromQuery]string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return BadRequest("File name should not be empty");
+
+            var downloadInfo = await _pdfDocumentHandler.DownloadAsync(fileName);
+
+            if (downloadInfo == null)
+            {
+                return NotFound($"File with name '{fileName}' does not exist");
+            }
+
+            return File(downloadInfo.Content, downloadInfo.ContentType);
         }
 
         [HttpPost]
@@ -41,9 +58,11 @@ namespace DocumentManagementService.Controllers
             var pdfSizeLimit = long.Parse(_configuration[PdfDocumentAllowedSizeLimitKey]);
             if (fileToUpload.Length > pdfSizeLimit)
                 return BadRequest($"File '{fileToUpload.Name}' size is more than {pdfSizeLimit} KB");
+            
+            var downloadFilePath = Url.ActionLink(action: "Download", values: new { fileName = fileToUpload.FileName });
+            var uploadedData = await _pdfDocumentHandler.UploadAsync(fileToUpload, downloadFilePath);
 
-            var uploadedData = await _pdfDocumentHandler.Upload(fileToUpload);
-            return Created(uploadedData.Path, uploadedData);
+            return Created(downloadFilePath, uploadedData);
         }
 
         // PUT: api/PdfDocument/5

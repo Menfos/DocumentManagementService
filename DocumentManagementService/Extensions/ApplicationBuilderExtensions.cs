@@ -20,7 +20,7 @@ namespace DocumentManagementService.Extensions
             if (blobClientFactory != null)
             {
                 var containerClient = blobClientFactory.GetContainerClient(BlobConstants.BlobDocumentsContainerName);
-                containerClient.CreateIfNotExists(PublicAccessType.Blob);
+                containerClient.CreateIfNotExists();
             }
 
             return applicationBuilder;

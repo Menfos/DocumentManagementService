@@ -24,9 +24,9 @@ namespace DocumentManagementService.Handlers
             _blobStorageService = blobStorageService;
         }
 
-        public async Task<IEnumerable<PdfDocumentDto>> GetAvailablePdfDocumentsAsync()
+        public IEnumerable<PdfDocumentDto> GetAvailablePdfDocuments()
         {
-            var pdfDocumentEntities = await _pdfDocumentRepository.GetPdfDocumentsAsync();
+            var pdfDocumentEntities = _pdfDocumentRepository.GetPdfDocuments();
             return pdfDocumentEntities
                 .Select(x => new PdfDocumentDto
                 {
@@ -36,23 +36,35 @@ namespace DocumentManagementService.Handlers
                 });
         }
 
-        public async Task<PdfDocumentDto> Upload(IFormFile fileToUpload)
+        public async Task<DownloadInformationDto> DownloadAsync(string fileName)
         {
-            BlobUploadResult blobUploadResult; 
-            using (var fileStream = fileToUpload.OpenReadStream())
-            {
-                blobUploadResult = await _blobStorageService.UploadFileToStorageAsync(fileToUpload.FileName, fileStream);
-            }
+            var downloadResult = await _blobStorageService.DownloadFileAsync(fileName);
 
-            if (blobUploadResult == null || !blobUploadResult.IsSuccess)
-                throw new DocumentUploadException("Provided pdf document failed to upload");
+            return downloadResult == null
+                ? null
+                : new DownloadInformationDto
+                {
+                    ContentType = downloadResult.ContentType,
+                    Content = downloadResult.Content
+                };
+        }
+
+        public async Task<PdfDocumentDto> UploadAsync(IFormFile fileToUpload, string downloadFilePath)
+        {
+            await using (var fileStream = fileToUpload.OpenReadStream())
+            {
+                var isUploaded = await _blobStorageService.UploadFileToStorageAsync(fileToUpload.FileName, fileStream);
+
+                if (!isUploaded)
+                    throw new DocumentUploadException("Provided pdf document failed to upload");
+            }
 
             var insertEntity = new PdfDocumentEntity
             {
                 Id = fileToUpload.FileName,
                 FileSize = fileToUpload.Length.ConvertBytesToMegabytes(),
                 SizeMeasurement = SizeMeasurementType.MB.ToString("G"),
-                Path = blobUploadResult.Path
+                Path = downloadFilePath
             };
             await _pdfDocumentRepository.InsertOrReplacePdfDocumentAsync(insertEntity);
 
@@ -60,7 +72,7 @@ namespace DocumentManagementService.Handlers
             {
                 Name = fileToUpload.FileName,
                 FileSize = $"{insertEntity.FileSize} {insertEntity.SizeMeasurement}",
-                Path = blobUploadResult.Path
+                Path = downloadFilePath
             };
         }
     }

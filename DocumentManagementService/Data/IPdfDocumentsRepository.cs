@@ -6,7 +6,7 @@ namespace DocumentManagementService.Data
 {
     public interface IPdfDocumentsRepository
     {
-        Task<IEnumerable<PdfDocumentEntity>> GetPdfDocumentsAsync();
+        IEnumerable<PdfDocumentEntity> GetPdfDocuments();
 
         Task InsertOrReplacePdfDocumentAsync(PdfDocumentEntity document);
     }

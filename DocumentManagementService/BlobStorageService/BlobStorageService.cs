@@ -15,7 +15,27 @@ namespace DocumentManagementService.BlobStorageService
             _blobClientFactory = blobClientFactory;
         }
 
-        public async Task<BlobUploadResult> UploadFileToStorageAsync(string fileName, Stream fileStream)
+        public async Task<BlobDownloadInfo> DownloadFileAsync(string fileName)
+        {
+            var client = _blobClientFactory.GetContainerClient(BlobConstants.BlobDocumentsContainerName);
+
+            var lowerFileName = fileName.ToLower();
+            var blobClient = client.GetBlobClient(lowerFileName);
+
+            if (!await blobClient.ExistsAsync())
+                return null;
+
+            var downloadResult = await blobClient.DownloadAsync();
+
+            using var downloadInfo = downloadResult.Value;
+            return new BlobDownloadInfo
+            {
+                ContentType = downloadInfo.ContentType,
+                Content = downloadInfo.Content
+            };
+        }
+
+        public async Task<bool> UploadFileToStorageAsync(string fileName, Stream fileStream)
         {
             var client = _blobClientFactory.GetContainerClient(BlobConstants.BlobDocumentsContainerName);
 
@@ -24,16 +44,7 @@ namespace DocumentManagementService.BlobStorageService
             var uploadResult = await blobClient.UploadAsync(fileStream, overwrite: true);
 
             using var rawResponse = uploadResult.GetRawResponse();
-            var isSuccess = rawResponse.Status == (int)HttpStatusCode.Created;
-            var uploadedPath = isSuccess
-                ? blobClient.Uri.AbsoluteUri
-                : string.Empty;
-            
-            return new BlobUploadResult
-            {
-                IsSuccess = isSuccess,
-                Path = uploadedPath
-            };
+            return rawResponse.Status == (int)HttpStatusCode.Created;
         }
     }
 }

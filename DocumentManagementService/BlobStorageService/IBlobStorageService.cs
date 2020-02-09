@@ -6,6 +6,8 @@ namespace DocumentManagementService.BlobStorageService
 {
     public interface IBlobStorageService
     {
-        Task<BlobUploadResult> UploadFileToStorageAsync(string fileName, Stream fileStream);
+        Task<BlobDownloadInfo> DownloadFileAsync(string fileName);
+
+        Task<bool> UploadFileToStorageAsync(string fileName, Stream fileStream);
     }
 }

@@ -5,13 +5,11 @@ using DocumentManagementService.Data.CosmosDb;
 using DocumentManagementService.Data.CosmosDb.ClientFactories;
 using DocumentManagementService.Data.CosmosDb.Entities;
 using Microsoft.Azure.Documents.Client;
-using Microsoft.EntityFrameworkCore;
 
 namespace DocumentManagementService.Data
 {
     public class PdfDocumentsRepository : IPdfDocumentsRepository
     {
-
         private readonly ICosmosDocumentClientFactory _documentClientFactory;
 
         public PdfDocumentsRepository(ICosmosDocumentClientFactory documentClientFactory)
@@ -19,16 +17,16 @@ namespace DocumentManagementService.Data
             _documentClientFactory = documentClientFactory;
         }
 
-        public async Task<IEnumerable<PdfDocumentEntity>> GetPdfDocumentsAsync()
+        public IEnumerable<PdfDocumentEntity> GetPdfDocuments()
         {
             var documentClient = _documentClientFactory.GetClient();
             var documentCollectionUri = UriFactory.CreateDocumentCollectionUri(
                 CosmosDbConstants.DocumentsDatabaseId,
                 CosmosDbConstants.PdfDocumentsCollectionId);
 
-            return await documentClient
+            return documentClient
                 .CreateDocumentQuery<PdfDocumentEntity>(documentCollectionUri)
-                .ToListAsync();
+                .ToList();
         }
 
         public async Task InsertOrReplacePdfDocumentAsync(PdfDocumentEntity document)

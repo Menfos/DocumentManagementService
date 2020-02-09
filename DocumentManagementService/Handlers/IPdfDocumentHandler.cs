@@ -7,8 +7,10 @@ namespace DocumentManagementService.Handlers
 {
     public interface IPdfDocumentHandler
     {
-        Task<IEnumerable<PdfDocumentDto>> GetAvailablePdfDocumentsAsync();
+        IEnumerable<PdfDocumentDto> GetAvailablePdfDocuments();
 
-        Task<PdfDocumentDto> Upload(IFormFile fileToUpload);
+        Task<DownloadInformationDto> DownloadAsync(string fileName);
+
+        Task<PdfDocumentDto> UploadAsync(IFormFile fileToUpload, string downloadFilePath);
     }
 }
